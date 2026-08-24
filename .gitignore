@@ -1,0 +1,6 @@
+# Dependencies and temporary CLI components
+.originkit/
+components/
+.DS_Store
+Thumbs.db
+node_modules/
