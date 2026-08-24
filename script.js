@@ -99,6 +99,9 @@ function initPortfolio() {
       sitePreloader.classList.add('fade-out');
       setTimeout(() => {
         sitePreloader.style.display = 'none';
+        if (typeof ScrollTrigger !== 'undefined') {
+          ScrollTrigger.refresh();
+        }
       }, 500);
     }
 
@@ -975,10 +978,13 @@ function initPortfolio() {
       });
       Composite.add(engine.world, mouseConstraint);
 
-      // Prevent wheel scroll hijacking
+      // Prevent wheel & touch scroll hijacking on mobile
       if (mouse.element) {
         mouse.element.removeEventListener('mousewheel', mouse.mousewheel);
         mouse.element.removeEventListener('DOMMouseScroll', mouse.mousewheel);
+        mouse.element.removeEventListener('touchmove', mouse.mousemove);
+        mouse.element.removeEventListener('touchstart', mouse.mousedown);
+        mouse.element.removeEventListener('touchend', mouse.mouseup);
       }
 
       // Add grabbing class on active drag
@@ -1006,27 +1012,34 @@ function initPortfolio() {
         physicsBodies.forEach(b => Composite.remove(engine.world, b));
         physicsBodies.length = 0;
 
-        const dims = getDimensions();
-        width = dims.w;
-        height = dims.h;
-
         const screenW = window.innerWidth;
         const isMobile = screenW < 768;
         const isSmallMobile = screenW < 380;
+
+        const dims = getDimensions();
+        width = dims.w;
+        height = Math.max(dims.h, isMobile ? 820 : 700);
+
+        // Update wall boundaries
+        Body.setPosition(walls[0], { x: width / 2, y: -400 });
+        Body.setPosition(walls[1], { x: width / 2, y: height + t / 2 });
+        Body.setPosition(walls[2], { x: -t / 2, y: height / 2 });
+        Body.setPosition(walls[3], { x: width + t / 2, y: height / 2 });
+
         const cubeSize = isSmallMobile ? 66 : (isMobile ? 72 : 116);
         const radius = isSmallMobile ? 12 : (isMobile ? 14 : 24);
 
         const n = gravityEls.length;
         const cols = isMobile ? 4 : 6;
-        const sideMargin = isMobile ? 18 : 60;
+        const sideMargin = isMobile ? 14 : 60;
         const availableW = width - (sideMargin * 2);
+        const headerOffset = isMobile ? 220 : 160;
 
         for (let i = 0; i < n; i++) {
           const col = i % cols;
           const row = Math.floor(i / cols);
-          const startX = sideMargin + ((col + 0.5) / cols) * availableW + (Math.random() - 0.5) * 10;
-          // Spawn staggered near top across the screen
-          const startY = (isMobile ? 25 : 50) + row * (cubeSize + (isMobile ? 12 : 24)) + (Math.random() - 0.5) * 10;
+          const startX = sideMargin + ((col + 0.5) / cols) * availableW + (Math.random() - 0.5) * 8;
+          const startY = headerOffset + row * (cubeSize + (isMobile ? 10 : 20)) + (Math.random() - 0.5) * 8;
 
           const body = Bodies.rectangle(startX, startY, cubeSize, cubeSize, {
             chamfer: { radius: radius },
@@ -1047,7 +1060,33 @@ function initPortfolio() {
         }
 
         Composite.add(engine.world, physicsBodies);
+
+        // Immediate position sync
+        for (let i = 0; i < physicsBodies.length; i++) {
+          const el = gravityEls[i];
+          const body = physicsBodies[i];
+          if (el && body) {
+            el.style.left = `${body.position.x}px`;
+            el.style.top = `${body.position.y}px`;
+            el.style.transform = `translate(-50%, -50%) rotate(${body.angle}rad)`;
+          }
+        }
       }
+
+      // Tap / Click impulse interaction on cards
+      gravityEls.forEach((el, idx) => {
+        el.addEventListener('click', () => {
+          const body = physicsBodies[idx];
+          if (body) {
+            Body.setVelocity(body, {
+              x: (Math.random() - 0.5) * 14,
+              y: -10 - Math.random() * 8
+            });
+            Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.25);
+            startPhysics();
+          }
+        });
+      });
 
       let isPhysicsRunning = false;
       let physicsFrameId = null;
