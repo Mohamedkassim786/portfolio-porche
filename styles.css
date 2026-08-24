@@ -282,7 +282,7 @@ a {
   image-rendering: -webkit-optimize-contrast;
   transform: translateZ(0);
   backface-visibility: hidden;
-  filter: brightness(1.18) contrast(1.1) saturate(1.05);
+  will-change: transform;
 }
 
 .video-overlay {
@@ -405,7 +405,6 @@ a {
   display: inline-block;
   transform-style: preserve-3d;
   backface-visibility: hidden;
-  will-change: transform, opacity, filter, text-shadow;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -2006,7 +2005,8 @@ a {
   /* Hero Section */
   #hero-video {
     object-position: 62% center;
-    filter: brightness(1.42) contrast(1.18) saturate(1.12);
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   .video-overlay {
@@ -2050,7 +2050,8 @@ a {
 
   /* About Section */
   #about-canvas {
-    filter: brightness(1.42) contrast(1.18) saturate(1.12);
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   .about-overlay {
@@ -2156,7 +2157,8 @@ a {
 
   /* Experience Section */
   .experience-canvas {
-    filter: brightness(1.42) contrast(1.18) saturate(1.12);
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   .exp-slide {

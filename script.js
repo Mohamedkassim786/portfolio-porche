@@ -599,7 +599,8 @@ function initPortfolio() {
     };
 
     resizeAboutCanvas = function() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const isMobile = window.innerWidth < 768;
+      const dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       aboutCanvas.width = window.innerWidth * dpr;
       aboutCanvas.height = window.innerHeight * dpr;
       renderAboutFrame();
@@ -642,14 +643,16 @@ function initPortfolio() {
     const aboutPSecondChars = splitTextIntoWordsAndChars(document.querySelector('.about-p-second'));
 
     if (typeof gsap !== 'undefined') {
+      const isMobile = window.innerWidth < 768;
       const aboutTl = gsap.timeline({
         scrollTrigger: {
           trigger: '#about',
           start: 'top top',
-          end: '+=420%',
+          end: isMobile ? '+=250%' : '+=420%',
           pin: '.about-pin-container',
-          scrub: 0.6,
+          scrub: isMobile ? 0.3 : 0.6,
           anticipatePin: 1,
+          fastScrollEnd: true,
           onUpdate: () => {
             renderAboutFrame();
           }
@@ -1046,40 +1049,77 @@ function initPortfolio() {
         Composite.add(engine.world, physicsBodies);
       }
 
-      spawnBodies();
+      let isPhysicsRunning = false;
+      let physicsFrameId = null;
+      let settleTimeout = null;
 
-      // Physics Animation Loop
-      function updatePhysics() {
-        requestAnimationFrame(updatePhysics);
-        Engine.update(engine, 1000 / 60);
+      function startPhysics() {
+        if (isPhysicsRunning) return;
+        isPhysicsRunning = true;
 
-        for (let i = 0; i < physicsBodies.length; i++) {
-          const el = gravityEls[i];
-          const body = physicsBodies[i];
-          if (el && body) {
-            el.style.left = `${body.position.x}px`;
-            el.style.top = `${body.position.y}px`;
-            el.style.transform = `translate(-50%, -50%) rotate(${body.angle}rad)`;
+        function step() {
+          if (!isPhysicsRunning) return;
+          Engine.update(engine, 1000 / 60);
+
+          for (let i = 0; i < physicsBodies.length; i++) {
+            const el = gravityEls[i];
+            const body = physicsBodies[i];
+            if (el && body) {
+              el.style.left = `${body.position.x}px`;
+              el.style.top = `${body.position.y}px`;
+              el.style.transform = `translate(-50%, -50%) rotate(${body.angle}rad)`;
+            }
           }
+          physicsFrameId = requestAnimationFrame(step);
+        }
+        physicsFrameId = requestAnimationFrame(step);
+
+        // Auto-pause physics after 3.5s to free CPU/GPU when bodies settle
+        clearTimeout(settleTimeout);
+        settleTimeout = setTimeout(() => {
+          stopPhysics();
+        }, 3500);
+      }
+
+      function stopPhysics() {
+        isPhysicsRunning = false;
+        if (physicsFrameId) {
+          cancelAnimationFrame(physicsFrameId);
+          physicsFrameId = null;
         }
       }
-      updatePhysics();
+
+      // Initial spawn and run
+      spawnBodies();
+      startPhysics();
 
       // Re-Drop Gravity Button Handler
       const resetGravityBtn = document.getElementById('reset-gravity-btn');
       if (resetGravityBtn) {
         resetGravityBtn.addEventListener('click', () => {
           spawnBodies();
+          startPhysics();
         });
       }
 
-      // GSAP ScrollTrigger to re-cascade when scrolling into skills
+      // GSAP ScrollTrigger to only run physics when Skills section is in viewport
       if (typeof ScrollTrigger !== 'undefined') {
         ScrollTrigger.create({
           trigger: '#skills',
-          start: 'top 70%',
+          start: 'top 85%',
+          end: 'bottom top',
           onEnter: () => {
             spawnBodies();
+            startPhysics();
+          },
+          onEnterBack: () => {
+            startPhysics();
+          },
+          onLeave: () => {
+            stopPhysics();
+          },
+          onLeaveBack: () => {
+            stopPhysics();
           }
         });
       }
@@ -1206,7 +1246,8 @@ function initPortfolio() {
     };
 
     resizeExpCanvas = function() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const isMobile = window.innerWidth < 768;
+      const dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       expCanvas.width = window.innerWidth * dpr;
       expCanvas.height = window.innerHeight * dpr;
       renderExpFrame();
@@ -1244,14 +1285,16 @@ function initPortfolio() {
 
     // Master ScrollTrigger Timeline for Experience Section
     if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+      const isMobile = window.innerWidth < 768;
       const expTl = gsap.timeline({
         scrollTrigger: {
           trigger: '#experience',
           start: 'top top',
-          end: '+=3000',
+          end: isMobile ? '+=2000' : '+=3000',
           pin: true,
-          scrub: 1,
-          anticipatePin: 1
+          scrub: isMobile ? 0.3 : 1,
+          anticipatePin: 1,
+          fastScrollEnd: true
         }
       });
 
