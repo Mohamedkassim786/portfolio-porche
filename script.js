@@ -10,31 +10,24 @@ function initPortfolio() {
   }
 
   /* ========================================================================
-     0. FULL ASSET PRELOADER (100% COMPLETE BEFORE ENTRY)
+     0. INSTANT & PROGRESSIVE PRELOADER
      ======================================================================== */
   const sitePreloader = document.getElementById('site-preloader');
   const preloaderBar = document.getElementById('preloader-bar');
   const preloaderPercent = document.getElementById('preloader-percent');
 
-  let totalAssetsLoaded = 0;
-  // Total assets: 144 About frames + 144 Experience frames + 1 Hero Video = 289 assets
-  const TOTAL_ASSETS_TARGET = 289;
   let isPreloaderFinished = false;
+  let currentProgress = 0;
 
-  function updatePreloaderDisplay() {
+  function updatePreloaderDisplay(percent) {
     if (isPreloaderFinished) return;
-    const progress = Math.min(Math.round((totalAssetsLoaded / TOTAL_ASSETS_TARGET) * 100), 100);
-    if (preloaderBar) preloaderBar.style.width = `${progress}%`;
-    if (preloaderPercent) preloaderPercent.textContent = `${progress}%`;
+    currentProgress = Math.min(Math.max(percent, currentProgress), 100);
+    if (preloaderBar) preloaderBar.style.width = `${currentProgress}%`;
+    if (preloaderPercent) preloaderPercent.textContent = `${Math.round(currentProgress)}%`;
 
-    if (totalAssetsLoaded >= TOTAL_ASSETS_TARGET) {
-      setTimeout(finishPreloader, 250);
+    if (currentProgress >= 100) {
+      setTimeout(finishPreloader, 80);
     }
-  }
-
-  function registerAssetLoaded() {
-    totalAssetsLoaded++;
-    updatePreloaderDisplay();
   }
 
   function finishPreloader() {
@@ -52,19 +45,34 @@ function initPortfolio() {
       sitePreloader.classList.add('fade-out');
       setTimeout(() => {
         sitePreloader.style.display = 'none';
-      }, 600);
+      }, 500);
     }
 
     // Start Hero Video & GSAP Hero Animation
     startHeroAnimation();
   }
 
-  // Safety fallback: maximum 5.5s
+  // Smooth, snappy entrance: animate progress to 100% within 380ms
+  const preloaderStartTime = Date.now();
+  const PRELOADER_DURATION = 380;
+  function tickPreloader() {
+    if (isPreloaderFinished) return;
+    const elapsed = Date.now() - preloaderStartTime;
+    const ratio = Math.min(elapsed / PRELOADER_DURATION, 1);
+    const easeProgress = Math.round(ratio * 100);
+    updatePreloaderDisplay(easeProgress);
+    if (ratio < 1) {
+      requestAnimationFrame(tickPreloader);
+    }
+  }
+  requestAnimationFrame(tickPreloader);
+
+  // Safety fallback: maximum 800ms
   setTimeout(() => {
     if (!isPreloaderFinished) {
       finishPreloader();
     }
-  }, 5500);
+  }, 800);
 
 
   /* ========================================================================
@@ -173,17 +181,6 @@ function initPortfolio() {
      2. HERO SECTION - ATMOSPHERIC SMOKE & TEXT REVEAL TIMELINE
      ======================================================================== */
   const heroVideo = document.getElementById('hero-video');
-  if (heroVideo) {
-    if (heroVideo.readyState >= 2) {
-      registerAssetLoaded();
-    } else {
-      heroVideo.addEventListener('loadeddata', registerAssetLoaded, { once: true });
-      heroVideo.addEventListener('canplay', registerAssetLoaded, { once: true });
-      heroVideo.addEventListener('error', registerAssetLoaded, { once: true });
-    }
-  } else {
-    registerAssetLoaded();
-  }
 
   const smokeCanvas = document.getElementById('smoke-canvas');
   const smokeCtx = smokeCanvas ? smokeCanvas.getContext('2d') : null;
@@ -225,6 +222,10 @@ function initPortfolio() {
       this.isRed = isRed;
       this.rotation = Math.random() * Math.PI * 2;
       this.vr = (Math.random() - 0.5) * 0.02;
+    }
+
+    isDead() {
+      return this.alpha <= 0;
     }
 
     update() {
@@ -326,51 +327,51 @@ function initPortfolio() {
       defaults: { ease: 'power3.out' }
     });
 
-    heroTl.call(() => triggerSmokeBurst(false), null, 3.0);
+    heroTl.call(() => triggerSmokeBurst(false), null, 0.1);
 
     if (firstNameChars.length > 0) {
       heroTl.fromTo(firstNameChars,
-        { opacity: 0, y: 40, rotateX: -85, scale: 1.25, filter: 'blur(14px)' },
-        { opacity: 1, y: 0, rotateX: 0, scale: 1, filter: 'blur(0px)', duration: 0.65, stagger: 0.05, ease: 'power3.out' },
-        3.0
+        { opacity: 0, y: 35, rotateX: -85, scale: 1.2, filter: 'blur(10px)' },
+        { opacity: 1, y: 0, rotateX: 0, scale: 1, filter: 'blur(0px)', duration: 0.55, stagger: 0.04, ease: 'power3.out' },
+        0.1
       );
     }
 
-    heroTl.call(() => triggerSmokeBurst(true), null, 3.25);
+    heroTl.call(() => triggerSmokeBurst(true), null, 0.28);
 
     if (lastNameChars.length > 0) {
       heroTl.fromTo(lastNameChars,
-        { opacity: 0, y: 40, rotateY: 60, filter: 'blur(14px)' },
-        { opacity: 1, y: 0, rotateY: 0, filter: 'blur(0px)', duration: 0.7, stagger: 0.05, ease: 'power3.out' },
-        3.25
+        { opacity: 0, y: 35, rotateY: 50, filter: 'blur(10px)' },
+        { opacity: 1, y: 0, rotateY: 0, filter: 'blur(0px)', duration: 0.6, stagger: 0.04, ease: 'power3.out' },
+        0.28
       );
     }
 
     if (roleChars.length > 0) {
       heroTl.fromTo(roleChars,
-        { opacity: 0, x: -18, scale: 0.85, filter: 'blur(6px)' },
-        { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', duration: 0.45, stagger: 0.014, ease: 'power2.out' },
-        4.1
+        { opacity: 0, x: -16, scale: 0.9, filter: 'blur(5px)' },
+        { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', duration: 0.45, stagger: 0.012, ease: 'power2.out' },
+        0.55
       );
     }
 
     if (descChars.length > 0) {
       heroTl.fromTo(descChars,
-        { opacity: 0, y: 16, filter: 'blur(5px)' },
-        { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.45, stagger: 0.008, ease: 'power2.out' },
-        4.6
+        { opacity: 0, y: 14, filter: 'blur(4px)' },
+        { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.45, stagger: 0.006, ease: 'power2.out' },
+        0.75
       );
     }
 
     heroTl.fromTo('.btn-cta',
-      { opacity: 0, y: 20, scale: 0.95 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.15, ease: 'back.out(1.5)' },
-      5.1
+      { opacity: 0, y: 18, scale: 0.95 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.1, ease: 'back.out(1.5)' },
+      0.95
     );
 
     heroTl.call(() => {
       bindInteractiveTouchToChars(document.querySelectorAll('#hero .char'), triggerTouchSmoke);
-    }, null, 5.7);
+    }, null, 1.2);
   }
 
   let hasStartedHero = false;
@@ -534,16 +535,29 @@ function initPortfolio() {
 
     window.addEventListener('resize', resizeAboutCanvas);
 
-    // High-Concurrency Full Preloader for About Frames:
-    const loadQueue = [];
-    for (let i = 0; i < TOTAL_FRAMES; i++) loadQueue.push(i);
+    // High-Efficiency Two-Tier Progressive Preloader for About Frames:
+    // 1. First load keyframes (every 6th frame) for instant 0-100% scroll scrub coverage
+    // 2. Then stream remaining interstitial frames smoothly in background
+    const keyframes = [];
+    const step = 6;
+    for (let i = 0; i < TOTAL_FRAMES; i += step) keyframes.push(i);
+    if (keyframes[keyframes.length - 1] !== TOTAL_FRAMES - 1) {
+      keyframes.push(TOTAL_FRAMES - 1);
+    }
+
+    const remainingFrames = [];
+    for (let i = 0; i < TOTAL_FRAMES; i++) {
+      if (!keyframes.includes(i)) remainingFrames.push(i);
+    }
+
+    const loadQueue = [...keyframes, ...remainingFrames];
 
     for (let i = 0; i < TOTAL_FRAMES; i++) {
       frameImages.push(null);
     }
 
     let queueIdx = 0;
-    const MAX_CONCURRENT = 8;
+    const MAX_CONCURRENT = 4;
     let activeLoads = 0;
 
     function processQueue() {
@@ -558,9 +572,8 @@ function initPortfolio() {
           frameImages[frameIdx] = img;
           loadedCount++;
           activeLoads--;
-          registerAssetLoaded();
-          if (frameIdx === 0) resizeAboutCanvas();
-          if (aboutLoader && loadedCount >= 8) {
+          if (frameIdx === 0 || loadedCount === 1) resizeAboutCanvas();
+          if (aboutLoader && loadedCount >= 4) {
             aboutLoader.classList.add('hidden');
           }
           processQueue();
@@ -568,7 +581,6 @@ function initPortfolio() {
 
         img.onerror = () => {
           activeLoads--;
-          registerAssetLoaded();
           processQueue();
         };
       }
@@ -1078,7 +1090,7 @@ function initPortfolio() {
       const p = expSmokeParticles[i];
       p.update();
       p.draw(expSmokeCtx);
-      if (p.isDead()) {
+      if (p.alpha <= 0 || (typeof p.isDead === 'function' && p.isDead())) {
         expSmokeParticles.splice(i, 1);
       }
     }
@@ -1191,16 +1203,29 @@ function initPortfolio() {
 
     window.addEventListener('resize', resizeExpCanvas);
 
-    // High-Concurrency Full Preloader for Experience Frames:
-    const expQueue = [];
-    for (let i = 0; i < TOTAL_EXP_FRAMES; i++) expQueue.push(i);
+    // High-Efficiency Two-Tier Progressive Preloader for Experience Frames:
+    // 1. First load keyframes (every 6th frame) for instant 0-100% scroll scrub coverage
+    // 2. Then stream remaining interstitial frames smoothly in background
+    const expKeyframes = [];
+    const expStep = 6;
+    for (let i = 0; i < TOTAL_EXP_FRAMES; i += expStep) expKeyframes.push(i);
+    if (expKeyframes[expKeyframes.length - 1] !== TOTAL_EXP_FRAMES - 1) {
+      expKeyframes.push(TOTAL_EXP_FRAMES - 1);
+    }
+
+    const expRemainingFrames = [];
+    for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
+      if (!expKeyframes.includes(i)) expRemainingFrames.push(i);
+    }
+
+    const expQueue = [...expKeyframes, ...expRemainingFrames];
 
     for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
       expFrames.push(null);
     }
 
     let expQueueIdx = 0;
-    const EXP_MAX_CONCURRENT = 8;
+    const EXP_MAX_CONCURRENT = 4;
     let expActiveLoads = 0;
 
     function processExpQueue() {
@@ -1215,9 +1240,8 @@ function initPortfolio() {
           expFrames[frameIdx] = img;
           expLoadedCount++;
           expActiveLoads--;
-          registerAssetLoaded();
-          if (frameIdx === 0) resizeExpCanvas();
-          if (expLoader && expLoadedCount >= 8) {
+          if (frameIdx === 0 || expLoadedCount === 1) resizeExpCanvas();
+          if (expLoader && expLoadedCount >= 4) {
             expLoader.classList.add('hidden');
           }
           processExpQueue();
@@ -1225,7 +1249,6 @@ function initPortfolio() {
 
         img.onerror = () => {
           expActiveLoads--;
-          registerAssetLoaded();
           processExpQueue();
         };
       }
