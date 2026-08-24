@@ -10,14 +10,32 @@ function initPortfolio() {
   }
 
   /* ========================================================================
-     0. SITE INITIAL PRELOADER (FAIL-SAFE & FAST)
+     0. LIGHTNING ASSET PRELOADER (INSTANT UNLOCK & PROGRESSIVE STREAMING)
      ======================================================================== */
   const sitePreloader = document.getElementById('site-preloader');
   const preloaderBar = document.getElementById('preloader-bar');
   const preloaderPercent = document.getElementById('preloader-percent');
 
-  let currentProgress = 0;
+  let criticalAssetsLoaded = 0;
+  // Critical assets needed for instant reveal: Video + Initial Canvas Frames (5 assets)
+  const CRITICAL_TARGET = 5;
   let isPreloaderFinished = false;
+
+  function updatePreloaderDisplay() {
+    if (isPreloaderFinished) return;
+    const progress = Math.min(Math.round((criticalAssetsLoaded / CRITICAL_TARGET) * 100), 100);
+    if (preloaderBar) preloaderBar.style.width = `${progress}%`;
+    if (preloaderPercent) preloaderPercent.textContent = `${progress}%`;
+
+    if (criticalAssetsLoaded >= CRITICAL_TARGET) {
+      setTimeout(finishPreloader, 120);
+    }
+  }
+
+  function registerCriticalAsset() {
+    criticalAssetsLoaded++;
+    updatePreloaderDisplay();
+  }
 
   function finishPreloader() {
     if (isPreloaderFinished) return;
@@ -26,45 +44,27 @@ function initPortfolio() {
     if (preloaderBar) preloaderBar.style.width = '100%';
     if (preloaderPercent) preloaderPercent.textContent = '100%';
 
+    // Immediate canvas draw on reveal
+    if (typeof resizeAboutCanvas === 'function') resizeAboutCanvas();
+    if (typeof resizeExpCanvas === 'function') resizeExpCanvas();
+
     if (sitePreloader) {
       sitePreloader.classList.add('fade-out');
       setTimeout(() => {
         sitePreloader.style.display = 'none';
-      }, 700);
+      }, 500);
     }
 
-    // Start Hero Video and Hero GSAP Animation
+    // Start Hero Video & GSAP Hero Animation
     startHeroAnimation();
   }
 
-  // Smooth self-advancing progress counter
-  const preloaderTicker = setInterval(() => {
-    if (isPreloaderFinished) {
-      clearInterval(preloaderTicker);
-      return;
-    }
-
-    currentProgress += Math.floor(Math.random() * 8) + 5;
-
-    if (currentProgress >= 100) {
-      currentProgress = 100;
-      clearInterval(preloaderTicker);
-      if (preloaderBar) preloaderBar.style.width = '100%';
-      if (preloaderPercent) preloaderPercent.textContent = '100%';
-      setTimeout(finishPreloader, 200);
-    } else {
-      if (preloaderBar) preloaderBar.style.width = `${currentProgress}%`;
-      if (preloaderPercent) preloaderPercent.textContent = `${currentProgress}%`;
-    }
-  }, 45);
-
-  // Safety fallback: maximum 1.4s preloader duration
+  // Safety fallback: maximum 2.2s
   setTimeout(() => {
     if (!isPreloaderFinished) {
-      clearInterval(preloaderTicker);
       finishPreloader();
     }
-  }, 1400);
+  }, 2200);
 
 
   /* ========================================================================
@@ -173,6 +173,18 @@ function initPortfolio() {
      2. HERO SECTION - ATMOSPHERIC SMOKE & TEXT REVEAL TIMELINE
      ======================================================================== */
   const heroVideo = document.getElementById('hero-video');
+  if (heroVideo) {
+    if (heroVideo.readyState >= 2) {
+      registerCriticalAsset();
+    } else {
+      heroVideo.addEventListener('loadeddata', registerCriticalAsset, { once: true });
+      heroVideo.addEventListener('canplay', registerCriticalAsset, { once: true });
+      heroVideo.addEventListener('error', registerCriticalAsset, { once: true });
+    }
+  } else {
+    registerCriticalAsset();
+  }
+
   const smokeCanvas = document.getElementById('smoke-canvas');
   const smokeCtx = smokeCanvas ? smokeCanvas.getContext('2d') : null;
   let smokeParticles = [];
@@ -467,26 +479,33 @@ function initPortfolio() {
       renderAboutFrame();
     }
 
-    // Render current frame with aspect-ratio cover fit
+    // Render current frame with aspect-ratio cover fit & bidirectional fallback
     function renderAboutFrame() {
       const currentIdx = Math.min(Math.max(Math.round(sequenceState.frame), 0), TOTAL_FRAMES - 1);
       const img = frameImages[currentIdx];
 
-      if (!img || !img.complete || img.naturalWidth === 0) {
-        for (let offset = 1; offset < 15; offset++) {
-          const prevImg = frameImages[currentIdx - offset];
-          if (prevImg && prevImg.complete && prevImg.naturalWidth > 0) {
-            drawToCanvas(prevImg);
-            return;
-          }
-        }
+      if (img && img.complete && img.naturalWidth > 0) {
+        drawToCanvas(img);
         return;
       }
 
-      drawToCanvas(img);
+      // Bidirectional fallback search up to 60 frames
+      for (let offset = 1; offset < 60; offset++) {
+        const prevImg = frameImages[currentIdx - offset];
+        if (prevImg && prevImg.complete && prevImg.naturalWidth > 0) {
+          drawToCanvas(prevImg);
+          return;
+        }
+        const nextImg = frameImages[currentIdx + offset];
+        if (nextImg && nextImg.complete && nextImg.naturalWidth > 0) {
+          drawToCanvas(nextImg);
+          return;
+        }
+      }
     }
 
     function drawToCanvas(img) {
+      if (!img || img.naturalWidth === 0) return;
       const cw = aboutCanvas.width;
       const ch = aboutCanvas.height;
       const iw = img.naturalWidth;
@@ -515,33 +534,58 @@ function initPortfolio() {
 
     window.addEventListener('resize', resizeAboutCanvas);
 
-    // Preload image sequence
+    // Fast Progressive Streamer for About Frames:
+    const loadQueue = [];
+    // Priority 1: Key start frames
+    for (let i = 0; i < Math.min(4, TOTAL_FRAMES); i++) loadQueue.push(i);
+    // Priority 2: Interlaced keyframes (every 4th)
+    for (let i = 4; i < TOTAL_FRAMES; i += 4) loadQueue.push(i);
+    // Priority 3: All remaining in-between frames
     for (let i = 0; i < TOTAL_FRAMES; i++) {
-      const img = new Image();
-      img.src = getFramePath(i);
+      if (!loadQueue.includes(i)) loadQueue.push(i);
+    }
 
-      img.onload = () => {
-        loadedCount++;
-        if (i === 0) {
-          resizeAboutCanvas();
-        }
-        if (loadedCount >= Math.min(25, TOTAL_FRAMES)) {
-          if (aboutLoader) {
+    for (let i = 0; i < TOTAL_FRAMES; i++) {
+      frameImages.push(null);
+    }
+
+    let queueIdx = 0;
+    const MAX_CONCURRENT = 4;
+    let activeLoads = 0;
+
+    function processQueue() {
+      while (activeLoads < MAX_CONCURRENT && queueIdx < loadQueue.length) {
+        const frameIdx = loadQueue[queueIdx++];
+        activeLoads++;
+
+        const img = new Image();
+        img.src = getFramePath(frameIdx);
+
+        img.onload = () => {
+          frameImages[frameIdx] = img;
+          loadedCount++;
+          activeLoads--;
+          if (frameIdx < 2) registerCriticalAsset();
+          if (frameIdx === 0) resizeAboutCanvas();
+          if (aboutLoader && loadedCount >= 8) {
             aboutLoader.classList.add('hidden');
           }
-        }
-      };
+          processQueue();
+        };
 
-      img.onerror = () => {
-        if (!img.src.includes('About%20frames') || img.src.includes('assets/')) {
-          img.src = `About%20frames/frame_${String(i).padStart(6, '0')}.png`;
-        } else {
-          loadedCount++;
-        }
-      };
-
-      frameImages.push(img);
+        img.onerror = () => {
+          if (!img.src.includes('About%20frames') || img.src.includes('assets/')) {
+            img.src = `About%20frames/frame_${String(frameIdx).padStart(6, '0')}.png`;
+          } else {
+            activeLoads--;
+            if (frameIdx < 2) registerCriticalAsset();
+            processQueue();
+          }
+        };
+      }
     }
+
+    processQueue();
 
     // Split About Section Text into Characters
     const aboutHeadlineFirstChars = splitTextIntoWordsAndChars(document.querySelector('.about-headline-first'));
@@ -1103,25 +1147,33 @@ function initPortfolio() {
       renderExpFrame();
     }
 
+    // Render current frame with aspect-ratio cover fit & bidirectional fallback
     function renderExpFrame() {
       const currentIdx = Math.min(Math.max(Math.round(expSeqState.frame), 0), TOTAL_EXP_FRAMES - 1);
       const img = expFrames[currentIdx];
 
-      if (!img || !img.complete || img.naturalWidth === 0) {
-        for (let offset = 1; offset < 15; offset++) {
-          const prevImg = expFrames[currentIdx - offset];
-          if (prevImg && prevImg.complete && prevImg.naturalWidth > 0) {
-            drawExpToCanvas(prevImg);
-            return;
-          }
-        }
+      if (img && img.complete && img.naturalWidth > 0) {
+        drawExpToCanvas(img);
         return;
       }
 
-      drawExpToCanvas(img);
+      // Bidirectional fallback search up to 60 frames
+      for (let offset = 1; offset < 60; offset++) {
+        const prevImg = expFrames[currentIdx - offset];
+        if (prevImg && prevImg.complete && prevImg.naturalWidth > 0) {
+          drawExpToCanvas(prevImg);
+          return;
+        }
+        const nextImg = expFrames[currentIdx + offset];
+        if (nextImg && nextImg.complete && nextImg.naturalWidth > 0) {
+          drawExpToCanvas(nextImg);
+          return;
+        }
+      }
     }
 
     function drawExpToCanvas(img) {
+      if (!img || img.naturalWidth === 0) return;
       const cw = expCanvas.width;
       const ch = expCanvas.height;
       const iw = img.naturalWidth;
@@ -1150,33 +1202,58 @@ function initPortfolio() {
 
     window.addEventListener('resize', resizeExpCanvas);
 
-    // Preload image sequence
+    // Fast Progressive Streamer for Experience Frames:
+    const expQueue = [];
+    // Priority 1: Key start frames
+    for (let i = 0; i < Math.min(4, TOTAL_EXP_FRAMES); i++) expQueue.push(i);
+    // Priority 2: Interlaced keyframes (every 4th)
+    for (let i = 4; i < TOTAL_EXP_FRAMES; i += 4) expQueue.push(i);
+    // Priority 3: All remaining in-between frames
     for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
-      const img = new Image();
-      img.src = getExpFramePath(i);
+      if (!expQueue.includes(i)) expQueue.push(i);
+    }
 
-      img.onload = () => {
-        expLoadedCount++;
-        if (i === 0) {
-          resizeExpCanvas();
-        }
-        if (expLoadedCount >= Math.min(25, TOTAL_EXP_FRAMES)) {
-          if (expLoader) {
+    for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
+      expFrames.push(null);
+    }
+
+    let expQueueIdx = 0;
+    const EXP_MAX_CONCURRENT = 4;
+    let expActiveLoads = 0;
+
+    function processExpQueue() {
+      while (expActiveLoads < EXP_MAX_CONCURRENT && expQueueIdx < expQueue.length) {
+        const frameIdx = expQueue[expQueueIdx++];
+        expActiveLoads++;
+
+        const img = new Image();
+        img.src = getExpFramePath(frameIdx);
+
+        img.onload = () => {
+          expFrames[frameIdx] = img;
+          expLoadedCount++;
+          expActiveLoads--;
+          if (frameIdx < 2) registerCriticalAsset();
+          if (frameIdx === 0) resizeExpCanvas();
+          if (expLoader && expLoadedCount >= 8) {
             expLoader.classList.add('hidden');
           }
-        }
-      };
+          processExpQueue();
+        };
 
-      img.onerror = () => {
-        if (!img.src.includes('assets/')) {
-          img.src = `assets/Achievements%20Frame/frame_${String(i).padStart(6, '0')}.png`;
-        } else {
-          expLoadedCount++;
-        }
-      };
-
-      expFrames.push(img);
+        img.onerror = () => {
+          if (!img.src.includes('assets/')) {
+            img.src = `assets/Achievements%20Frame/frame_${String(frameIdx).padStart(6, '0')}.png`;
+          } else {
+            expActiveLoads--;
+            if (frameIdx < 2) registerCriticalAsset();
+            processExpQueue();
+          }
+        };
+      }
     }
+
+    processExpQueue();
 
     // Master ScrollTrigger Timeline for Experience Section
     if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
