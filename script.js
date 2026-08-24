@@ -651,9 +651,10 @@ function initPortfolio() {
         scrollTrigger: {
           trigger: '#about',
           start: 'top top',
-          end: isMobile ? '+=250%' : '+=420%',
+          end: isMobile ? '+=180%' : '+=380%',
           pin: '.about-pin-container',
-          scrub: isMobile ? 0.3 : 0.6,
+          pinSpacing: true,
+          scrub: isMobile ? 0.25 : 0.6,
           anticipatePin: 1,
           fastScrollEnd: true,
           onUpdate: () => {
@@ -678,57 +679,59 @@ function initPortfolio() {
         duration: 0.25
       }, 0.50);
 
-      // 3. Trigger About Smoke Bursts as Text Arrives
-      aboutTl.call(() => triggerAboutSmokeBurst(false), null, 0.62);
-      aboutTl.call(() => triggerAboutSmokeBurst(true), null, 0.66);
+      // 3. Trigger About Smoke Bursts on desktop only to save mobile main-thread
+      if (!isMobile) {
+        aboutTl.call(() => triggerAboutSmokeBurst(false), null, 0.62);
+        aboutTl.call(() => triggerAboutSmokeBurst(true), null, 0.66);
+      }
 
       // 4. Section Badge Reveal (0.60 to 0.66)
       aboutTl.fromTo('#about-badge',
-        { opacity: 0, y: 20 },
+        { opacity: 0, y: 15 },
         { opacity: 1, y: 0, duration: 0.08, ease: 'power2.out' },
         0.60
       );
 
-      // 5. Headline Line 1 (DRIVEN BY CURIOSITY.) - 3D Letter Flip (0.63 to 0.73)
+      // 5. Headline Line 1 (DRIVEN BY CURIOSITY.)
       if (aboutHeadlineFirstChars.length > 0) {
         aboutTl.fromTo(aboutHeadlineFirstChars,
-          { opacity: 0, y: 28, rotateX: -85, scale: 1.15, filter: 'blur(10px)' },
-          { opacity: 1, y: 0, rotateX: 0, scale: 1, filter: 'blur(0px)', duration: 0.2, stagger: 0.012, ease: 'power3.out' },
+          { opacity: 0, y: isMobile ? 14 : 28, rotateX: isMobile ? 0 : -85, scale: isMobile ? 1 : 1.15 },
+          { opacity: 1, y: 0, rotateX: 0, scale: 1, duration: 0.18, stagger: isMobile ? 0.005 : 0.012, ease: 'power2.out' },
           0.63
         );
       }
 
-      // 6. Headline Line 2 (BUILT WITH CODE.) - 3D Rotate & Crimson (0.66 to 0.76)
+      // 6. Headline Line 2 (BUILT WITH CODE.)
       if (aboutHeadlineLastChars.length > 0) {
         aboutTl.fromTo(aboutHeadlineLastChars,
-          { opacity: 0, y: 28, rotateY: 60, filter: 'blur(10px)' },
-          { opacity: 1, y: 0, rotateY: 0, filter: 'blur(0px)', duration: 0.22, stagger: 0.014, ease: 'power3.out' },
+          { opacity: 0, y: isMobile ? 14 : 28, rotateY: isMobile ? 0 : 60 },
+          { opacity: 1, y: 0, rotateY: 0, duration: 0.18, stagger: isMobile ? 0.005 : 0.014, ease: 'power2.out' },
           0.66
         );
       }
 
-      // 7. Bio Paragraph 1 - Letter Cascade Reveal (0.72 to 0.82)
+      // 7. Bio Paragraph 1
       if (aboutPFirstChars.length > 0) {
         aboutTl.fromTo(aboutPFirstChars,
-          { opacity: 0, y: 12, filter: 'blur(4px)' },
-          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.16, stagger: 0.003, ease: 'power2.out' },
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.14, stagger: isMobile ? 0.001 : 0.003, ease: 'power2.out' },
           0.72
         );
       }
 
-      // 8. Bio Paragraph 2 - Letter Cascade Reveal (0.76 to 0.86)
+      // 8. Bio Paragraph 2
       if (aboutPSecondChars.length > 0) {
         aboutTl.fromTo(aboutPSecondChars,
-          { opacity: 0, y: 12, filter: 'blur(4px)' },
-          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.16, stagger: 0.003, ease: 'power2.out' },
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.14, stagger: isMobile ? 0.001 : 0.003, ease: 'power2.out' },
           0.76
         );
       }
 
       // 9. CTA Buttons Reveal (0.82 to 0.92)
       aboutTl.fromTo('.about-btn-cta',
-        { opacity: 0, y: 18, scale: 0.95 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.18, stagger: 0.08, ease: 'back.out(1.5)' },
+        { opacity: 0, y: 14, scale: 0.95 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.16, stagger: 0.06, ease: 'power2.out' },
         0.82
       );
 
@@ -893,18 +896,25 @@ function initPortfolio() {
       }
     });
 
-    // Touch Interaction & Gestures (Moves immediately on touch/swipe and continues auto-cycling)
+    // Touch Interaction & Gestures (Horizontal swipes only, vertical swipes scroll page freely)
     let touchStartX = 0;
+    let touchStartY = 0;
     let touchEndX = 0;
+    let touchEndY = 0;
 
     coverflowRoot.addEventListener('touchstart', (e) => {
       touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
     }, { passive: true });
 
     coverflowRoot.addEventListener('touchend', (e) => {
       touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
       const diffX = touchEndX - touchStartX;
-      if (Math.abs(diffX) > 25) {
+      const diffY = Math.abs(touchEndY - touchStartY);
+
+      // Only cycle cards if horizontal swipe is intentional and exceeds vertical scroll
+      if (Math.abs(diffX) > 35 && Math.abs(diffX) > diffY * 1.2) {
         if (diffX < 0) {
           setActiveIndex(activeIndex + 1);
         } else {
@@ -1329,11 +1339,15 @@ function initPortfolio() {
         scrollTrigger: {
           trigger: '#experience',
           start: 'top top',
-          end: isMobile ? '+=2000' : '+=3000',
-          pin: true,
-          scrub: isMobile ? 0.3 : 1,
+          end: isMobile ? '+=180%' : '+=3000',
+          pin: '.experience-sticky-container',
+          pinSpacing: true,
+          scrub: isMobile ? 0.25 : 1,
           anticipatePin: 1,
-          fastScrollEnd: true
+          fastScrollEnd: true,
+          onUpdate: () => {
+            renderExpFrame();
+          }
         }
       });
 
@@ -1347,22 +1361,21 @@ function initPortfolio() {
 
       // 2. Slide 1 (Overview & Stats): Visible from start, exits at ~28%
       expTl.fromTo('#exp-slide-1',
-        { autoAlpha: 1, x: 0, filter: 'blur(0px)', pointerEvents: 'auto' },
-        { autoAlpha: 0, x: 60, filter: 'blur(10px)', pointerEvents: 'none', duration: 1.2, ease: 'power2.in' },
+        { autoAlpha: 1, x: 0, pointerEvents: 'auto' },
+        { autoAlpha: 0, x: isMobile ? 30 : 60, pointerEvents: 'none', duration: 1.2, ease: 'power2.in' },
         2.4
       );
 
       // 3. Slide 2 (Competitions & Awards): Enters at 32%, stays until 60%, exits at 64%
       expTl.fromTo('#exp-slide-2',
-        { autoAlpha: 0, x: 60, filter: 'blur(10px)', pointerEvents: 'none' },
-        { autoAlpha: 1, x: 0, filter: 'blur(0px)', pointerEvents: 'auto', duration: 1.2, ease: 'power2.out' },
+        { autoAlpha: 0, x: isMobile ? 30 : 60, pointerEvents: 'none' },
+        { autoAlpha: 1, x: 0, pointerEvents: 'auto', duration: 1.2, ease: 'power2.out' },
         3.2
       );
 
       expTl.to('#exp-slide-2', {
         autoAlpha: 0,
-        x: 60,
-        filter: 'blur(10px)',
+        x: isMobile ? 30 : 60,
         pointerEvents: 'none',
         duration: 1.2,
         ease: 'power2.in'
@@ -1370,14 +1383,14 @@ function initPortfolio() {
 
       // 4. Slide 3 (Industry & Client Engagements): Enters at 66%, stays until 95%
       expTl.fromTo('#exp-slide-3',
-        { autoAlpha: 0, x: 60, filter: 'blur(10px)', pointerEvents: 'none' },
-        { autoAlpha: 1, x: 0, filter: 'blur(0px)', pointerEvents: 'auto', duration: 1.2, ease: 'power2.out' },
+        { autoAlpha: 0, x: isMobile ? 30 : 60, pointerEvents: 'none' },
+        { autoAlpha: 1, x: 0, pointerEvents: 'auto', duration: 1.2, ease: 'power2.out' },
         6.6
       );
 
       expTl.to('#exp-slide-3', {
         autoAlpha: 0,
-        y: -30,
+        y: -20,
         pointerEvents: 'none',
         duration: 0.8,
         ease: 'power1.in'
