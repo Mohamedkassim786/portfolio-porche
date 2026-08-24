@@ -981,24 +981,29 @@ function initPortfolio() {
       const mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,
         constraint: {
-          stiffness: 0.95,
-          angularStiffness: 0.2,
+          stiffness: 0.92,
+          angularStiffness: 0.15,
           render: { visible: false }
         }
       });
       Composite.add(engine.world, mouseConstraint);
 
-      // Prevent wheel & touch scroll hijacking on mobile
+      // Prevent wheel scroll hijacking (allow normal page scroll on wheel)
       if (mouse.element) {
         mouse.element.removeEventListener('mousewheel', mouse.mousewheel);
         mouse.element.removeEventListener('DOMMouseScroll', mouse.mousewheel);
-        mouse.element.removeEventListener('touchmove', mouse.mousemove);
-        mouse.element.removeEventListener('touchstart', mouse.mousedown);
-        mouse.element.removeEventListener('touchend', mouse.mouseup);
       }
 
-      // Add grabbing class on active drag
+      // Wake up physics immediately on click/mousedown
+      gravityContainer.addEventListener('mousedown', () => {
+        clearTimeout(settleTimeout);
+        startPhysics();
+      });
+
+      // Add grabbing class and wake physics on active drag
       Events.on(mouseConstraint, 'startdrag', (evt) => {
+        clearTimeout(settleTimeout);
+        startPhysics();
         const body = evt.body;
         const idx = physicsBodies.indexOf(body);
         if (idx !== -1 && gravityEls[idx]) {
@@ -1012,6 +1017,11 @@ function initPortfolio() {
         if (idx !== -1 && gravityEls[idx]) {
           gravityEls[idx].classList.remove('grabbing');
         }
+        // Keep physics running so the tossed cube falls and bounces naturally
+        clearTimeout(settleTimeout);
+        settleTimeout = setTimeout(() => {
+          stopPhysics();
+        }, 4000);
       });
 
       // Physics Bodies (Sleek Cubes - Responsive Sizing)
@@ -1103,7 +1113,15 @@ function initPortfolio() {
       let settleTimeout = null;
 
       function startPhysics() {
-        if (isPhysicsRunning) return;
+        if (isPhysicsRunning) {
+          if (!mouseConstraint.body) {
+            clearTimeout(settleTimeout);
+            settleTimeout = setTimeout(() => {
+              stopPhysics();
+            }, 3500);
+          }
+          return;
+        }
         isPhysicsRunning = true;
 
         function step() {
@@ -1123,14 +1141,16 @@ function initPortfolio() {
         }
         physicsFrameId = requestAnimationFrame(step);
 
-        // Auto-pause physics after 3.5s to free CPU/GPU when bodies settle
-        clearTimeout(settleTimeout);
-        settleTimeout = setTimeout(() => {
-          stopPhysics();
-        }, 3500);
+        if (!mouseConstraint.body) {
+          clearTimeout(settleTimeout);
+          settleTimeout = setTimeout(() => {
+            stopPhysics();
+          }, 3500);
+        }
       }
 
       function stopPhysics() {
+        if (mouseConstraint.body) return; // Never stop while user is holding a body
         isPhysicsRunning = false;
         if (physicsFrameId) {
           cancelAnimationFrame(physicsFrameId);
