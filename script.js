@@ -10,30 +10,30 @@ function initPortfolio() {
   }
 
   /* ========================================================================
-     0. LIGHTNING ASSET PRELOADER (INSTANT UNLOCK & PROGRESSIVE STREAMING)
+     0. FULL ASSET PRELOADER (100% COMPLETE BEFORE ENTRY)
      ======================================================================== */
   const sitePreloader = document.getElementById('site-preloader');
   const preloaderBar = document.getElementById('preloader-bar');
   const preloaderPercent = document.getElementById('preloader-percent');
 
-  let criticalAssetsLoaded = 0;
-  // Critical assets needed for instant reveal: Video + Initial Canvas Frames (5 assets)
-  const CRITICAL_TARGET = 5;
+  let totalAssetsLoaded = 0;
+  // Total assets: 144 About frames + 144 Experience frames + 1 Hero Video = 289 assets
+  const TOTAL_ASSETS_TARGET = 289;
   let isPreloaderFinished = false;
 
   function updatePreloaderDisplay() {
     if (isPreloaderFinished) return;
-    const progress = Math.min(Math.round((criticalAssetsLoaded / CRITICAL_TARGET) * 100), 100);
+    const progress = Math.min(Math.round((totalAssetsLoaded / TOTAL_ASSETS_TARGET) * 100), 100);
     if (preloaderBar) preloaderBar.style.width = `${progress}%`;
     if (preloaderPercent) preloaderPercent.textContent = `${progress}%`;
 
-    if (criticalAssetsLoaded >= CRITICAL_TARGET) {
-      setTimeout(finishPreloader, 120);
+    if (totalAssetsLoaded >= TOTAL_ASSETS_TARGET) {
+      setTimeout(finishPreloader, 250);
     }
   }
 
-  function registerCriticalAsset() {
-    criticalAssetsLoaded++;
+  function registerAssetLoaded() {
+    totalAssetsLoaded++;
     updatePreloaderDisplay();
   }
 
@@ -44,7 +44,7 @@ function initPortfolio() {
     if (preloaderBar) preloaderBar.style.width = '100%';
     if (preloaderPercent) preloaderPercent.textContent = '100%';
 
-    // Immediate canvas draw on reveal
+    // Immediate canvas draw for both sections on reveal
     if (typeof resizeAboutCanvas === 'function') resizeAboutCanvas();
     if (typeof resizeExpCanvas === 'function') resizeExpCanvas();
 
@@ -52,19 +52,19 @@ function initPortfolio() {
       sitePreloader.classList.add('fade-out');
       setTimeout(() => {
         sitePreloader.style.display = 'none';
-      }, 500);
+      }, 600);
     }
 
     // Start Hero Video & GSAP Hero Animation
     startHeroAnimation();
   }
 
-  // Safety fallback: maximum 2.2s
+  // Safety fallback: maximum 5.5s
   setTimeout(() => {
     if (!isPreloaderFinished) {
       finishPreloader();
     }
-  }, 2200);
+  }, 5500);
 
 
   /* ========================================================================
@@ -175,14 +175,14 @@ function initPortfolio() {
   const heroVideo = document.getElementById('hero-video');
   if (heroVideo) {
     if (heroVideo.readyState >= 2) {
-      registerCriticalAsset();
+      registerAssetLoaded();
     } else {
-      heroVideo.addEventListener('loadeddata', registerCriticalAsset, { once: true });
-      heroVideo.addEventListener('canplay', registerCriticalAsset, { once: true });
-      heroVideo.addEventListener('error', registerCriticalAsset, { once: true });
+      heroVideo.addEventListener('loadeddata', registerAssetLoaded, { once: true });
+      heroVideo.addEventListener('canplay', registerAssetLoaded, { once: true });
+      heroVideo.addEventListener('error', registerAssetLoaded, { once: true });
     }
   } else {
-    registerCriticalAsset();
+    registerAssetLoaded();
   }
 
   const smokeCanvas = document.getElementById('smoke-canvas');
@@ -465,10 +465,10 @@ function initPortfolio() {
     let loadedCount = 0;
     const sequenceState = { frame: 0 };
 
-    // Format path for 6-digit zero padded frame index
+    // Format path for 6-digit zero padded frame index (Optimized JPG)
     function getFramePath(index) {
       const padded = String(index).padStart(6, '0');
-      return `assets/About%20frames/frame_${padded}.png`;
+      return `About%20frames/frame_${padded}.jpg`;
     }
 
     // Set high-DPI canvas size
@@ -534,23 +534,16 @@ function initPortfolio() {
 
     window.addEventListener('resize', resizeAboutCanvas);
 
-    // Fast Progressive Streamer for About Frames:
+    // High-Concurrency Full Preloader for About Frames:
     const loadQueue = [];
-    // Priority 1: Key start frames
-    for (let i = 0; i < Math.min(4, TOTAL_FRAMES); i++) loadQueue.push(i);
-    // Priority 2: Interlaced keyframes (every 4th)
-    for (let i = 4; i < TOTAL_FRAMES; i += 4) loadQueue.push(i);
-    // Priority 3: All remaining in-between frames
-    for (let i = 0; i < TOTAL_FRAMES; i++) {
-      if (!loadQueue.includes(i)) loadQueue.push(i);
-    }
+    for (let i = 0; i < TOTAL_FRAMES; i++) loadQueue.push(i);
 
     for (let i = 0; i < TOTAL_FRAMES; i++) {
       frameImages.push(null);
     }
 
     let queueIdx = 0;
-    const MAX_CONCURRENT = 4;
+    const MAX_CONCURRENT = 8;
     let activeLoads = 0;
 
     function processQueue() {
@@ -565,7 +558,7 @@ function initPortfolio() {
           frameImages[frameIdx] = img;
           loadedCount++;
           activeLoads--;
-          if (frameIdx < 2) registerCriticalAsset();
+          registerAssetLoaded();
           if (frameIdx === 0) resizeAboutCanvas();
           if (aboutLoader && loadedCount >= 8) {
             aboutLoader.classList.add('hidden');
@@ -574,13 +567,9 @@ function initPortfolio() {
         };
 
         img.onerror = () => {
-          if (!img.src.includes('About%20frames') || img.src.includes('assets/')) {
-            img.src = `About%20frames/frame_${String(frameIdx).padStart(6, '0')}.png`;
-          } else {
-            activeLoads--;
-            if (frameIdx < 2) registerCriticalAsset();
-            processQueue();
-          }
+          activeLoads--;
+          registerAssetLoaded();
+          processQueue();
         };
       }
     }
@@ -1137,7 +1126,7 @@ function initPortfolio() {
 
     function getExpFramePath(index) {
       const padded = String(index).padStart(6, '0');
-      return `Achievements%20Frame/frame_${padded}.png`;
+      return `Achievements%20Frame/frame_${padded}.jpg`;
     }
 
     function resizeExpCanvas() {
@@ -1202,23 +1191,16 @@ function initPortfolio() {
 
     window.addEventListener('resize', resizeExpCanvas);
 
-    // Fast Progressive Streamer for Experience Frames:
+    // High-Concurrency Full Preloader for Experience Frames:
     const expQueue = [];
-    // Priority 1: Key start frames
-    for (let i = 0; i < Math.min(4, TOTAL_EXP_FRAMES); i++) expQueue.push(i);
-    // Priority 2: Interlaced keyframes (every 4th)
-    for (let i = 4; i < TOTAL_EXP_FRAMES; i += 4) expQueue.push(i);
-    // Priority 3: All remaining in-between frames
-    for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
-      if (!expQueue.includes(i)) expQueue.push(i);
-    }
+    for (let i = 0; i < TOTAL_EXP_FRAMES; i++) expQueue.push(i);
 
     for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
       expFrames.push(null);
     }
 
     let expQueueIdx = 0;
-    const EXP_MAX_CONCURRENT = 4;
+    const EXP_MAX_CONCURRENT = 8;
     let expActiveLoads = 0;
 
     function processExpQueue() {
@@ -1233,7 +1215,7 @@ function initPortfolio() {
           expFrames[frameIdx] = img;
           expLoadedCount++;
           expActiveLoads--;
-          if (frameIdx < 2) registerCriticalAsset();
+          registerAssetLoaded();
           if (frameIdx === 0) resizeExpCanvas();
           if (expLoader && expLoadedCount >= 8) {
             expLoader.classList.add('hidden');
@@ -1242,13 +1224,9 @@ function initPortfolio() {
         };
 
         img.onerror = () => {
-          if (!img.src.includes('assets/')) {
-            img.src = `assets/Achievements%20Frame/frame_${String(frameIdx).padStart(6, '0')}.png`;
-          } else {
-            expActiveLoads--;
-            if (frameIdx < 2) registerCriticalAsset();
-            processExpQueue();
-          }
+          expActiveLoads--;
+          registerAssetLoaded();
+          processExpQueue();
         };
       }
     }
