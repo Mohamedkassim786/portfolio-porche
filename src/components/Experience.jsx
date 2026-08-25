@@ -122,7 +122,7 @@ export default function Experience({ preloadedFrames = [] }) {
           end: isMobile ? '+=160%' : '+=2400',
           pin: '.experience-sticky-container',
           pinSpacing: true,
-          scrub: isMobile ? 0.15 : 0.45,
+          scrub: isMobile ? 0.05 : 0.25,
           anticipatePin: 1,
           fastScrollEnd: true,
         },

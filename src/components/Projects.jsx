@@ -1,64 +1,72 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 
 const PROJECTS = [
   {
+    id: 1,
     num: '01',
-    category: 'ENTERPRISE ACADEMIC PLATFORM',
+    category: 'INTELLIGENT COLLEGE MANAGEMENT SYSTEM',
     title: 'MIET ERP',
-    desc: 'An enterprise-grade Academic Resource Planning system built to automate campus operations, track real-time student attendance, orchestrate dynamic class timetables, process multi-tier faculty workflows, and deliver auditable analytics across academic departments.',
-    tags: ['React.js', 'Node.js', 'Express.js', 'PostgreSQL', 'Prisma ORM', 'Tailwind CSS', 'Docker', 'JWT'],
-    repo: 'https://github.com/Mohamedkassim786/MIET_ERP',
+    desc: 'A comprehensive role-based ERP platform designed to streamline academic and examination management, including student records, attendance, internal and external marks, hall allocation, GPA/CGPA, and institutional workflows.',
+    tags: ['React', 'Node.js', 'PostgreSQL', 'Prisma', 'JWT'],
+    repo: 'https://github.com/Mohamedkassim786/MIETERP',
   },
   {
+    id: 2,
     num: '02',
-    category: 'IOT HARDWARE & CLOUD ECOSYSTEM',
+    category: 'INTELLIGENT GPS-BASED SPEED LIMITER',
     title: 'SAFERIDE',
-    desc: 'An intelligent safety and accident response ecosystem leveraging ESP32 IoT hardware with real-time multi-axis impact telemetry, GPS coordinate tracking, algorithmic fall detection, and automatic emergency SMS alerts synchronized with a cloud portal.',
-    tags: ['ESP32', 'C++', 'IoT Sensor Mesh', 'Node.js', 'Express.js', 'MySQL', 'Twilio API', 'Socket.IO'],
-    repo: 'https://github.com/Mohamedkassim786/saferide-fullstack',
+    desc: 'A location-aware vehicle safety system that combines a Flutter mobile application with ESP32 hardware to detect restricted zones and automatically enforce speed limits using real-time GPS, dynamic geofencing, and Bluetooth communication.',
+    tags: ['Flutter', 'Dart', 'ESP32', 'GPS', 'OpenStreetMap', 'SQLite', 'Bluetooth'],
+    repo: 'https://github.com/Mohamedkassim786/GPSTRACKING-MOBILEAPP',
   },
   {
+    id: 3,
     num: '03',
-    category: 'REAL-TIME RESTAURANT COMMERCE',
+    category: 'SMART DINING & IOT MANAGEMENT PLATFORM',
     title: 'SCAN & DINE',
-    desc: 'A full-stack digital dining platform featuring contactless dynamic QR-based table ordering, real-time live kitchen dispatch (KDS) via WebSockets, multi-channel payment processing, and comprehensive restaurant revenue analytics.',
-    tags: ['Flutter', 'Dart', 'FastAPI', 'Python', 'PostgreSQL', 'Socket.IO', 'Redis', 'Razorpay API'],
-    repo: 'https://github.com/Mohamedkassim786/scan-and-dine',
+    desc: 'A full-stack, real-time QR-based restaurant platform featuring ESP32 smart table displays, live kitchen workflows, digital payments, order management, and a comprehensive admin control center.',
+    tags: ['React', 'TypeScript', 'Node.js', 'Express', 'Prisma', 'Socket.IO', 'ESP32'],
+    repo: 'https://github.com/Mohamedkassim786/Scan-Dine',
   },
   {
+    id: 4,
     num: '04',
-    category: 'AGENTIC AI INSURANCE SUITE',
+    category: 'AI-POWERED KNOWLEDGE ASSISTANT',
     title: 'KNOWSURE AI',
-    desc: 'An intelligent insurance automation engine utilizing LangChain, autonomous LLM agents, and semantic vector retrieval (RAG) to instantly parse multi-page policy clauses, detect coverage overlaps, and generate accurate risk profiles.',
-    tags: ['Next.js', 'TypeScript', 'FastAPI', 'Python', 'LangChain', 'OpenAI', 'FAISS', 'Pinecone'],
-    repo: 'https://github.com/Mohamedkassim786/Knowsure-ai',
+    desc: 'An evidence-driven RAG assistant that answers questions strictly from uploaded documents, reduces hallucinations, understands natural-language queries and typos, and provides source-backed responses.',
+    tags: ['React', 'FastAPI', 'Python', 'FAISS', 'NVIDIA AI', 'RAG'],
+    repo: 'https://github.com/Mohamedkassim786/Academia-AI',
   },
   {
+    id: 5,
     num: '05',
-    category: 'TALENT BENCHMARKING ENGINE',
+    category: 'AI-POWERED LEARNING & PLACEMENT PLATFORM',
     title: 'SKILLBRIDGE',
-    desc: 'A skill verification and candidate benchmarking web application that delivers adaptive real-time technical coding assessments, automated multi-language code evaluation, anti-cheat monitoring, and recruiter candidate analytics.',
-    tags: ['React.js', 'TypeScript', 'Node.js', 'Express.js', 'PostgreSQL', 'Judge0 API', 'Tailwind CSS'],
-    repo: 'https://github.com/Mohamedkassim786/Skillbridge',
+    desc: 'An enterprise learning platform that combines multi-language coding sandboxes, AI-powered career tools, resume analysis, mock interviews, skill assessments, and live masterclasses.',
+    tags: ['Laravel', 'PHP', 'Livewire', 'Tailwind CSS', 'NVIDIA AI', 'MySQL'],
+    repo: 'https://github.com/Mohamedkassim786/SkillBridge-Laravel',
   },
   {
+    id: 6,
     num: '06',
-    category: 'COMMERCE & APPAREL ERP',
+    category: 'GARMENT MANUFACTURING ERP SYSTEM',
     title: 'SHIRTERP',
-    desc: 'A specialized manufacturing and multi-outlet supply-chain ERP designed for custom apparel operations, managing high-throughput raw material inventory, batch billing, pattern production pipelines, and automated financial records.',
-    tags: ['Laravel', 'PHP', 'Livewire', 'MySQL', 'Tailwind CSS', 'Alpine.js', 'Chart.js'],
-    repo: 'https://github.com/Mohamedkassim786/shirterp',
+    desc: 'An end-to-end enterprise resource planning system for garment manufacturing, managing inventory, production, sales, accounting, HR, payroll, and the complete product lifecycle.',
+    tags: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Prisma'],
+    repo: 'https://github.com/Mohamedkassim786/SHIRTERP',
   },
   {
+    id: 7,
     num: '07',
-    category: 'INTERNATIONAL LOGISTICS SUITE',
+    category: 'COURIER TRACKING & MANAGEMENT PLATFORM',
     title: 'TKS COURIER & CARGO',
-    desc: 'An enterprise logistics and freight tracking portal built for active international courier routes between Singapore and India, featuring barcode-scanned parcel tracking, automated airway bill generation, and multi-currency billing.',
-    tags: ['Laravel', 'PHP', 'MySQL', 'REST APIs', 'Bootstrap 5', 'DomPDF', 'cURL'],
-    repo: 'https://github.com/Mohamedkassim786/tks-courier-cargo',
+    desc: 'A full-stack courier tracking platform built with a React frontend and Express backend, using Google Sheets for data management and deployment-ready cloud infrastructure.',
+    tags: ['React', 'Node.js', 'Express', 'Google Sheets'],
+    repo: 'https://github.com/Mohamedkassim786/courier-website',
   },
   {
+    id: 8,
     num: '08',
     category: 'AUTONOMOUS ENTREPRENEURSHIP INTELLIGENCE',
     title: 'SHELEADS AI',
@@ -73,6 +81,7 @@ export default function Projects() {
   const [isMobile, setIsMobile] = useState(false);
   const totalCards = PROJECTS.length;
   const autoplayTimerRef = useRef(null);
+  const isVisibleRef = useRef(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -86,8 +95,10 @@ export default function Projects() {
   const startAutoplay = () => {
     stopAutoplay();
     autoplayTimerRef.current = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % totalCards);
-    }, 2800);
+      if (isVisibleRef.current) {
+        setActiveIndex((prev) => (prev + 1) % totalCards);
+      }
+    }, 2000);
   };
 
   const stopAutoplay = () => {
@@ -103,14 +114,36 @@ export default function Projects() {
   };
 
   useEffect(() => {
-    startAutoplay();
+    const section = document.getElementById('work');
+    if (!section) {
+      startAutoplay();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          isVisibleRef.current = true;
+          startAutoplay();
+        } else {
+          isVisibleRef.current = false;
+          stopAutoplay();
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(section);
+
     const handleVisibility = () => {
       if (document.hidden) stopAutoplay();
-      else startAutoplay();
+      else if (isVisibleRef.current) startAutoplay();
     };
     document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       stopAutoplay();
+      observer.disconnect();
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [totalCards]);
@@ -127,7 +160,7 @@ export default function Projects() {
     const diffX = e.changedTouches[0].screenX - touchStartXRef.current;
     const diffY = Math.abs(e.changedTouches[0].screenY - touchStartYRef.current);
 
-    if (Math.abs(diffX) > 30 && Math.abs(diffX) > diffY * 1.1) {
+    if (Math.abs(diffX) > 35 && Math.abs(diffX) > diffY * 1.2) {
       if (diffX < 0) {
         setActiveIndex((prev) => (prev + 1) % totalCards);
       } else {
@@ -181,7 +214,7 @@ export default function Projects() {
 
               return (
                 <div
-                  key={proj.id || proj.title}
+                  key={proj.id}
                   className={`coverflow-card ${isActive ? 'active' : ''}`}
                   style={{
                     transform: `translate(-50%, -50%) translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg) rotateZ(${rz}deg) scale(${sc})`,
@@ -224,11 +257,12 @@ export default function Projects() {
                         className="card-cta-btn"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span>VIEW ON GITHUB</span>
-                        <ArrowRight size={14} />
+                        <span>VIEW REPOSITORY</span>
+                        <ExternalLink size={16} />
                       </a>
                     </div>
                   </div>
+                  <div className="card-dim" style={{ opacity: isActive ? 0 : 0.65 }}></div>
                 </div>
               );
             })}
@@ -237,38 +271,41 @@ export default function Projects() {
           {/* Navigation Controls */}
           <div className="coverflow-controls">
             <button
-              className="coverflow-btn prev-btn"
-              aria-label="Previous Project"
+              className="coverflow-btn coverflow-prev"
+              id="coverflow-prev"
+              aria-label="Previous project"
               onClick={() => {
                 setActiveIndex((prev) => (prev - 1 + totalCards) % totalCards);
                 resetAutoplay();
               }}
             >
-              <ChevronLeft size={22} />
+              <ChevronLeft size={20} />
             </button>
 
-            <div className="coverflow-dots">
+            <div className="coverflow-dots" id="coverflow-dots">
               {PROJECTS.map((_, i) => (
-                <span
+                <div
                   key={i}
                   className={`coverflow-dot ${i === activeIndex ? 'active' : ''}`}
                   onClick={() => {
                     setActiveIndex(i);
                     resetAutoplay();
                   }}
-                ></span>
+                  aria-label={`Go to project ${i + 1}`}
+                ></div>
               ))}
             </div>
 
             <button
-              className="coverflow-btn next-btn"
-              aria-label="Next Project"
+              className="coverflow-btn coverflow-next"
+              id="coverflow-next"
+              aria-label="Next project"
               onClick={() => {
                 setActiveIndex((prev) => (prev + 1) % totalCards);
                 resetAutoplay();
               }}
             >
-              <ChevronRight size={22} />
+              <ChevronRight size={20} />
             </button>
           </div>
         </div>

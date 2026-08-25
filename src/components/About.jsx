@@ -124,7 +124,7 @@ export default function About({ preloadedFrames = [] }) {
           end: isMobile ? '+=160%' : '+=320%',
           pin: '.about-pin-container',
           pinSpacing: true,
-          scrub: isMobile ? 0.15 : 0.35,
+          scrub: isMobile ? 0.05 : 0.25,
           anticipatePin: 1,
           fastScrollEnd: true,
         },

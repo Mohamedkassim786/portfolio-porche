@@ -92,7 +92,7 @@ export default function Hero({ ready }) {
           muted
           playsInline
           loop
-          preload="auto"
+          preload={typeof window !== 'undefined' && window.innerWidth < 768 ? 'metadata' : 'auto'}
         >
           <source src="/assets/Hero.mp4" type="video/mp4" />
           <source src="/Hero.mp4" type="video/mp4" />
