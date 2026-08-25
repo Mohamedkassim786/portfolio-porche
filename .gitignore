@@ -4,6 +4,7 @@ components/
 .DS_Store
 Thumbs.db
 node_modules/
+dist/
 
 # Local Netlify folder
 .netlify
