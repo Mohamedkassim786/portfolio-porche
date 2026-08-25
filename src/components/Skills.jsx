@@ -220,7 +220,9 @@ export default function Skills() {
     if (mouse.element) {
       mouse.element.removeEventListener('mousewheel', mouse.mousewheel);
       mouse.element.removeEventListener('DOMMouseScroll', mouse.mousewheel);
+      mouse.element.removeEventListener('wheel', mouse.mousewheel);
     }
+    mouse.mousewheel = () => {};
 
     const physicsBodies = [];
     let isPhysicsRunning = false;

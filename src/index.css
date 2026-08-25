@@ -1601,7 +1601,6 @@ a {
   transform: rotate(-180deg);
 }
 
-/* Fullscreen Physics Stage */
 .gravity-gallery-root {
   position: absolute;
   top: 0;
@@ -1614,7 +1613,7 @@ a {
   box-shadow: none;
   overflow: hidden;
   touch-action: pan-y;
-  pointer-events: auto;
+  pointer-events: none;
   z-index: 2;
 }
 
