@@ -1,21 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { gsap } from 'gsap';
 
 export default function InteractiveText({ text, className = '', isRed = false, smokeType = 'hero' }) {
   if (!text) return null;
-
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check, { passive: true });
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  if (isMobile) {
-    return <span className={`interactive-text-wrap ${className}`}>{text}</span>;
-  }
 
   const words = text.split(' ');
 
@@ -44,6 +31,7 @@ export default function InteractiveText({ text, className = '', isRed = false, s
       window.triggerExpTouchSmoke(touchX, touchY, isRed);
     }
 
+    // Safety fallback: ensure letter always returns to base position even if mouseleave/touchend is missed
     if (target._returnTimer) clearTimeout(target._returnTimer);
     target._returnTimer = setTimeout(() => {
       animateDown(target);
@@ -65,6 +53,33 @@ export default function InteractiveText({ text, className = '', isRed = false, s
     });
   };
 
+  const handleMouseEnter = (e) => {
+    animateUp(e.currentTarget, e.clientX, e.clientY);
+  };
+
+  const handleMouseLeave = (e) => {
+    animateDown(e.currentTarget);
+  };
+
+  const handleTouchStart = (e) => {
+    const target = e.currentTarget;
+    target.classList.add('touch-active');
+    const touch = e.touches ? e.touches[0] : null;
+    animateUp(target, touch ? touch.clientX : undefined, touch ? touch.clientY : undefined);
+  };
+
+  const handleTouchEnd = (e) => {
+    const target = e.currentTarget;
+    animateDown(target);
+    setTimeout(() => {
+      if (target) target.classList.remove('touch-active');
+    }, 350);
+  };
+
+  const handleTouchCancel = (e) => {
+    handleTouchEnd(e);
+  };
+
   return (
     <span className={`interactive-text-wrap ${className}`}>
       {words.map((word, wordIdx) => (
@@ -76,8 +91,11 @@ export default function InteractiveText({ text, className = '', isRed = false, s
                 <span
                   key={charIdx}
                   className={`char ${isBullet ? 'accent-bullet' : ''}`}
-                  onMouseEnter={(e) => animateUp(e.currentTarget, e.clientX, e.clientY)}
-                  onMouseLeave={(e) => animateDown(e.currentTarget)}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchCancel={handleTouchCancel}
                 >
                   {char}
                 </span>

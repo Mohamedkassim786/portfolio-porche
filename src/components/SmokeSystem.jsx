@@ -2,10 +2,6 @@ import React, { useEffect } from 'react';
 
 export default function SmokeSystem() {
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      return;
-    }
-
     const heroCanvas = document.getElementById('smoke-canvas');
     const aboutCanvas = document.getElementById('about-smoke-canvas');
     const expCanvas = document.getElementById('experience-smoke-canvas');

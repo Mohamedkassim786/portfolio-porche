@@ -103,25 +103,16 @@ export default function Experience({ preloadedFrames = [] }) {
       }
     };
 
-    let rAFId = null;
-    const requestExpFrameDraw = (force = false) => {
-      if (rAFId) return;
-      rAFId = requestAnimationFrame(() => {
-        rAFId = null;
-        renderExpFrame(force);
-      });
-    };
-
     const resizeCanvas = () => {
       const dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
-      requestExpFrameDraw(true);
+      renderExpFrame(true);
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas, { passive: true });
-    requestExpFrameDraw(true);
+    renderExpFrame(true);
 
     const triggerCtx = gsap.context(() => {
       const expTl = gsap.timeline({
@@ -142,7 +133,7 @@ export default function Experience({ preloadedFrames = [] }) {
         frame: TOTAL_EXP_FRAMES - 1,
         ease: 'none',
         duration: 10,
-        onUpdate: () => requestExpFrameDraw(false),
+        onUpdate: () => renderExpFrame(false),
       }, 0);
 
       // 2. Slide 1 (Overview & Stats): Visible from start, exits at ~28%
