@@ -2324,42 +2324,56 @@ a {
   }
 
   .about-content {
-    padding-left: 6vw;
-    padding-right: 6vw;
+    padding-left: 5vw;
+    padding-right: 5vw;
     align-items: flex-end;
-    padding-bottom: 4.5rem;
+    padding-bottom: max(3rem, 5vh);
+  }
+
+  .about-text-block {
+    max-width: 100%;
   }
 
   .about-headline {
-    font-size: clamp(1.8rem, 6.5vw, 2.6rem);
+    font-size: clamp(1.5rem, 5.8vw, 2.2rem);
+    margin-bottom: 0.75rem;
+  }
+
+  .about-paragraphs {
+    gap: 0.55rem;
+    margin-bottom: 1.2rem;
   }
 
   .about-p {
-    font-size: 0.88rem;
-    line-height: 1.55;
+    font-size: clamp(0.82rem, 3.4vw, 0.9rem);
+    line-height: 1.5;
+  }
+
+  .about-buttons {
+    gap: 0.75rem;
   }
 
   /* Work Coverflow Gallery */
   .work-section {
-    padding: 5rem 0 3.5rem;
+    padding: 4.5rem 0 3rem;
   }
 
   .coverflow-root {
-    height: 520px;
+    height: 480px;
   }
 
   .coverflow-stage,
   .coverflow-card {
-    width: min(92vw, 460px);
-    height: 420px;
+    width: min(90vw, 420px);
+    height: 400px;
   }
 
   .card-inner {
-    padding: 1.4rem 1.5rem;
+    padding: 1.25rem 1.35rem;
   }
 
   .card-desc {
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     -webkit-line-clamp: 3;
     line-clamp: 3;
   }
@@ -2426,19 +2440,26 @@ a {
   }
 
   .editorial-slide-content {
-    max-width: 96%;
+    max-width: min(94vw, 440px);
     margin: 0 auto;
-    gap: 0.75rem;
+    gap: 0.65rem;
+    padding: 1.25rem 1.35rem;
+    background: rgba(4, 5, 8, 0.76);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
   }
 
   .editorial-main-title,
   .editorial-hero-title {
-    font-size: clamp(1.6rem, 5.5vw, 2.2rem);
+    font-size: clamp(1.45rem, 5.2vw, 2rem);
   }
 
   .editorial-lead {
-    font-size: 0.86rem;
-    line-height: 1.55;
+    font-size: 0.84rem;
+    line-height: 1.5;
   }
 
   /* Contact Section */
