@@ -114,6 +114,17 @@ export default function Experience({ preloadedFrames = [] }) {
     window.addEventListener('resize', resizeCanvas, { passive: true });
     renderExpFrame(true);
 
+    // Retry drawing frame 0 until it renders (prevents black canvas on slow loads)
+    let retryCount = 0;
+    const retryInterval = setInterval(() => {
+      retryCount++;
+      if (lastDrawnIdxRef.current >= 0 || retryCount > 60) {
+        clearInterval(retryInterval);
+        return;
+      }
+      renderExpFrame(true);
+    }, 200);
+
     const triggerCtx = gsap.context(() => {
       const expTl = gsap.timeline({
         scrollTrigger: {

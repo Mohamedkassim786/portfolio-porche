@@ -2696,7 +2696,6 @@ a {
   .experience-canvas {
     transform: translateZ(0);
     will-change: transform;
-    image-rendering: optimizeSpeed;
   }
 
   /* Reduce paint complexity on card transitions */
