@@ -2,11 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 
 const TOTAL_ABOUT_FRAMES = 144;
 const TOTAL_EXP_FRAMES = 144;
+const TOTAL_ASSETS = TOTAL_ABOUT_FRAMES + TOTAL_EXP_FRAMES + 1; // 289 assets
 
-// On mobile, load fewer frames initially for faster startup
-const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
-const BATCH_SIZE = isMobileDevice ? 6 : 12; // Concurrent image downloads
-const ABOUT_PRIORITY_FRAMES = isMobileDevice ? 48 : 144; // Load first N About frames before proceeding
+// Controlled batch size to avoid flooding the network
+const BATCH_SIZE = typeof window !== 'undefined' && window.innerWidth < 768 ? 8 : 15;
 
 export default function Preloader({ onComplete }) {
   const [percent, setPercent] = useState(0);
@@ -23,22 +22,18 @@ export default function Preloader({ onComplete }) {
   useEffect(() => {
     let isMounted = true;
 
-    // Total assets for the progress bar: priority About frames + 1 video
-    // Experience frames load lazily after site is interactive
-    const TOTAL_PRIORITY = ABOUT_PRIORITY_FRAMES + 1;
-
     const updateProgress = () => {
-      const targetPercent = Math.min(100, Math.floor((loadedCountRef.current / TOTAL_PRIORITY) * 100));
+      const targetPercent = Math.min(100, Math.floor((loadedCountRef.current / TOTAL_ASSETS) * 100));
       if (displayedPercentRef.current < targetPercent) {
         const diff = targetPercent - displayedPercentRef.current;
-        displayedPercentRef.current += Math.max(1, Math.ceil(diff * 0.4));
+        displayedPercentRef.current += Math.max(1, Math.ceil(diff * 0.35));
         if (displayedPercentRef.current > targetPercent) {
           displayedPercentRef.current = targetPercent;
         }
         setPercent(displayedPercentRef.current);
       }
 
-      if (displayedPercentRef.current >= 100 && loadedCountRef.current >= TOTAL_PRIORITY && !completedRef.current) {
+      if (displayedPercentRef.current >= 100 && loadedCountRef.current >= TOTAL_ASSETS && !completedRef.current) {
         completedRef.current = true;
         setTimeout(() => {
           if (!isMounted) return;
@@ -49,12 +44,6 @@ export default function Preloader({ onComplete }) {
             onComplete({
               aboutFrames: aboutFramesRef.current,
               expFrames: expFramesRef.current,
-            });
-
-            // After site is interactive, lazily load remaining frames in background
-            requestIdleCallback(() => {
-              loadRemainingAboutFrames();
-              loadExperienceFramesLazily();
             });
           }, 400);
         }, 100);
@@ -70,62 +59,55 @@ export default function Preloader({ onComplete }) {
       loadedCountRef.current += 1;
     };
 
-    // Batched image loader: loads images in controlled chunks to avoid network flooding
-    const loadImageBatch = (urls, storeArray, startIdx, onEachLoad) => {
-      return new Promise((resolve) => {
-        let completed = 0;
-        const total = urls.length;
-        if (total === 0) { resolve(); return; }
+    // Batched image loader: loads images in controlled concurrent chunks
+    const loadImageBatch = (urls, storeArray, startIdx) => {
+      let queue = [...urls.map((url, i) => ({ url, index: startIdx + i }))];
+      let active = 0;
 
-        let queue = [...urls.map((url, i) => ({ url, index: startIdx + i }))];
-        let active = 0;
+      const loadNext = () => {
+        while (active < BATCH_SIZE && queue.length > 0) {
+          active++;
+          const item = queue.shift();
+          const img = new Image();
 
-        const loadNext = () => {
-          if (queue.length === 0 && active === 0) {
-            resolve();
-            return;
-          }
+          const finish = (loadedImg) => {
+            if (loadedImg) storeArray[item.index] = loadedImg;
+            markLoaded();
+            active--;
+            loadNext();
+          };
 
-          while (active < BATCH_SIZE && queue.length > 0) {
-            active++;
-            const item = queue.shift();
-            const img = new Image();
-            img.decoding = 'async';
+          img.onload = () => finish(img);
+          img.onerror = () => {
+            const fb = new Image();
+            fb.onload = () => finish(fb);
+            fb.onerror = () => finish(null);
+            fb.src = item.url.startsWith('/') ? item.url.slice(1) : `/${item.url}`;
+          };
+          img.src = item.url;
+        }
+      };
 
-            const finish = (loadedImg) => {
-              if (loadedImg) storeArray[item.index] = loadedImg;
-              active--;
-              completed++;
-              if (onEachLoad) onEachLoad();
-              loadNext();
-            };
-
-            img.onload = () => finish(img);
-            img.onerror = () => {
-              // Try fallback path
-              const fb = new Image();
-              fb.decoding = 'async';
-              fb.onload = () => finish(fb);
-              fb.onerror = () => finish(null);
-              fb.src = item.url.startsWith('/') ? item.url.slice(1) : `/${item.url}`;
-            };
-            img.src = item.url;
-          }
-        };
-
-        loadNext();
-      });
+      loadNext();
     };
 
-    // 1. Load priority About frames (first N) in batches
+    // 1. Load ALL 144 About frames in controlled batches
     const aboutUrls = [];
-    for (let i = 0; i < ABOUT_PRIORITY_FRAMES; i++) {
+    for (let i = 0; i < TOTAL_ABOUT_FRAMES; i++) {
       const numStr = String(i).padStart(6, '0');
       aboutUrls.push(`/About%20frames/frame_${numStr}.jpg`);
     }
-    loadImageBatch(aboutUrls, aboutFramesRef.current, 0, markLoaded);
+    loadImageBatch(aboutUrls, aboutFramesRef.current, 0);
 
-    // 2. Preload Hero Video (counts as 1 asset)
+    // 2. Load ALL 144 Experience frames in controlled batches
+    const expUrls = [];
+    for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
+      const numStr = String(i).padStart(6, '0');
+      expUrls.push(`/Achievements%20Frame/frame_${numStr}.jpg`);
+    }
+    loadImageBatch(expUrls, expFramesRef.current, 0);
+
+    // 3. Preload Hero Video (counts as 1 asset)
     const video = document.createElement('video');
     video.preload = 'auto';
     video.muted = true;
@@ -143,34 +125,7 @@ export default function Preloader({ onComplete }) {
     video.src = '/assets/Hero.mp4';
     video.load();
 
-    // Safety timeout for video
     const videoSafetyTimeout = setTimeout(onVideoReady, 3000);
-
-    // 3. Load remaining About frames in background (if mobile loaded only 48)
-    const loadRemainingAboutFrames = () => {
-      if (ABOUT_PRIORITY_FRAMES >= TOTAL_ABOUT_FRAMES) return;
-      const remainingUrls = [];
-      for (let i = ABOUT_PRIORITY_FRAMES; i < TOTAL_ABOUT_FRAMES; i++) {
-        const numStr = String(i).padStart(6, '0');
-        remainingUrls.push(`/About%20frames/frame_${numStr}.jpg`);
-      }
-      loadImageBatch(remainingUrls, aboutFramesRef.current, ABOUT_PRIORITY_FRAMES, null);
-    };
-
-    // 4. Lazily load Experience frames AFTER site is interactive
-    const loadExperienceFramesLazily = () => {
-      const expUrls = [];
-      for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
-        const numStr = String(i).padStart(6, '0');
-        expUrls.push(`/Achievements%20Frame/frame_${numStr}.jpg`);
-      }
-      loadImageBatch(expUrls, expFramesRef.current, 0, null);
-    };
-
-    // requestIdleCallback polyfill
-    if (typeof window.requestIdleCallback === 'undefined') {
-      window.requestIdleCallback = (cb) => setTimeout(cb, 50);
-    }
 
     return () => {
       isMounted = false;
