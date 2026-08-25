@@ -14,6 +14,12 @@ import SmokeSystem from './components/SmokeSystem';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Optimize ScrollTrigger for high-DPI Android/OnePlus 90Hz screens (ignore address-bar resize jumps)
+ScrollTrigger.config({
+  ignoreMobileResize: true,
+  autoRefreshEvents: 'visibilitychange,DOMContentLoaded,load',
+});
+
 export default function App() {
   const [loadedAssets, setLoadedAssets] = useState(null);
   const [isReady, setIsReady] = useState(false);
@@ -31,11 +37,18 @@ export default function App() {
   };
 
   useEffect(() => {
+    let resizeTimer = null;
     const handleResize = () => {
-      ScrollTrigger.refresh();
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 150);
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(resizeTimer);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   return (
