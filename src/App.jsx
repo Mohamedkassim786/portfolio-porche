@@ -10,7 +10,7 @@ import Projects from './components/Projects';
 import Skills from './components/Skills';
 import Experience from './components/Experience';
 import Contact from './components/Contact';
-import Footer from './components/Footer';
+import SmokeSystem from './components/SmokeSystem';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -21,10 +21,13 @@ export default function App() {
   const handlePreloaderComplete = ({ aboutFrames, expFrames }) => {
     setLoadedAssets({ aboutFrames, expFrames });
     setIsReady(true);
-    // Refresh ScrollTrigger after DOM has settled
-    setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 200);
+
+    // Refresh ScrollTrigger cleanly once DOM is settled
+    [50, 150, 400, 800].forEach((delay) => {
+      setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, delay);
+    });
   };
 
   useEffect(() => {
@@ -37,32 +40,32 @@ export default function App() {
 
   return (
     <div className="portfolio-app">
-      {/* 100% Asset Preloader */}
+      {/* 100% Asset Preloader Screen */}
       <Preloader onComplete={handlePreloaderComplete} />
 
-      {/* Global Navbar */}
+      {/* Atmospheric Smoke & Touch/Cursor Trail Engine */}
+      <SmokeSystem />
+
+      {/* Luxury Navigation Header */}
       <Navbar />
 
       {/* Hero Section */}
       <Hero ready={isReady} />
 
-      {/* About Section (144-Frame Sequence) */}
+      {/* About Section (144-Frame Canvas Sequence Scrubbed by ScrollTrigger) */}
       <About preloadedFrames={loadedAssets?.aboutFrames || []} />
 
-      {/* Projects Section (3D Coverflow) */}
+      {/* Featured Projects (3D Perspective Coverflow Gallery) */}
       <Projects />
 
       {/* Skills Section (Matter.js 2D Physics Gravity Gallery) */}
       <Skills />
 
-      {/* Experience & Achievements Section (144-Frame Sequence + Slides) */}
+      {/* Experience & Achievements (144-Frame Canvas Sequence + Pinned Slides) */}
       <Experience preloadedFrames={loadedAssets?.expFrames || []} />
 
-      {/* Contact Section */}
+      {/* Contact Section & Footer */}
       <Contact />
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }
