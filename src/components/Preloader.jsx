@@ -4,9 +4,6 @@ const TOTAL_ABOUT_FRAMES = 144;
 const TOTAL_EXP_FRAMES = 144;
 const TOTAL_ASSETS = TOTAL_ABOUT_FRAMES + TOTAL_EXP_FRAMES + 1; // 289 assets
 
-// Controlled batch size to avoid flooding the network
-const BATCH_SIZE = typeof window !== 'undefined' && window.innerWidth < 768 ? 8 : 15;
-
 export default function Preloader({ onComplete }) {
   const [percent, setPercent] = useState(0);
   const [isFading, setIsFading] = useState(false);
@@ -17,7 +14,6 @@ export default function Preloader({ onComplete }) {
   const aboutFramesRef = useRef([]);
   const expFramesRef = useRef([]);
   const animFrameIdRef = useRef(null);
-  const completedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -33,8 +29,7 @@ export default function Preloader({ onComplete }) {
         setPercent(displayedPercentRef.current);
       }
 
-      if (displayedPercentRef.current >= 100 && loadedCountRef.current >= TOTAL_ASSETS && !completedRef.current) {
-        completedRef.current = true;
+      if (displayedPercentRef.current >= 100 && loadedCountRef.current >= TOTAL_ASSETS) {
         setTimeout(() => {
           if (!isMounted) return;
           setIsFading(true);
@@ -45,8 +40,8 @@ export default function Preloader({ onComplete }) {
               aboutFrames: aboutFramesRef.current,
               expFrames: expFramesRef.current,
             });
-          }, 400);
-        }, 100);
+          }, 500);
+        }, 150);
         return;
       }
 
@@ -59,55 +54,40 @@ export default function Preloader({ onComplete }) {
       loadedCountRef.current += 1;
     };
 
-    // Batched image loader: loads images in controlled concurrent chunks
-    const loadImageBatch = (urls, storeArray, startIdx) => {
-      let queue = [...urls.map((url, i) => ({ url, index: startIdx + i }))];
-      let active = 0;
-
-      const loadNext = () => {
-        while (active < BATCH_SIZE && queue.length > 0) {
-          active++;
-          const item = queue.shift();
-          const img = new Image();
-
-          const finish = (loadedImg) => {
-            if (loadedImg) storeArray[item.index] = loadedImg;
-            markLoaded();
-            active--;
-            loadNext();
-          };
-
-          img.onload = () => finish(img);
-          img.onerror = () => {
-            const fb = new Image();
-            fb.onload = () => finish(fb);
-            fb.onerror = () => finish(null);
-            fb.src = item.url.startsWith('/') ? item.url.slice(1) : `/${item.url}`;
-          };
-          img.src = item.url;
-        }
+    const preloadImage = (url, storeArray, index) => {
+      const img = new Image();
+      img.onload = () => {
+        storeArray[index] = img;
+        markLoaded();
       };
-
-      loadNext();
+      img.onerror = () => {
+        // Fallback without leading slash or with assets/
+        const fb = new Image();
+        fb.onload = () => {
+          storeArray[index] = fb;
+          markLoaded();
+        };
+        fb.onerror = () => {
+          markLoaded();
+        };
+        fb.src = url.startsWith('/') ? url.slice(1) : `/${url}`;
+      };
+      img.src = url;
     };
 
-    // 1. Load ALL 144 About frames in controlled batches
-    const aboutUrls = [];
+    // 1. Preload 144 About 3D Frames (frame_000000.jpg to frame_000143.jpg)
     for (let i = 0; i < TOTAL_ABOUT_FRAMES; i++) {
       const numStr = String(i).padStart(6, '0');
-      aboutUrls.push(`/About%20frames/frame_${numStr}.jpg`);
+      preloadImage(`/About%20frames/frame_${numStr}.jpg`, aboutFramesRef.current, i);
     }
-    loadImageBatch(aboutUrls, aboutFramesRef.current, 0);
 
-    // 2. Load ALL 144 Experience frames in controlled batches
-    const expUrls = [];
+    // 2. Preload 144 Achievements 3D Frames (frame_000000.jpg to frame_000143.jpg)
     for (let i = 0; i < TOTAL_EXP_FRAMES; i++) {
       const numStr = String(i).padStart(6, '0');
-      expUrls.push(`/Achievements%20Frame/frame_${numStr}.jpg`);
+      preloadImage(`/Achievements%20Frame/frame_${numStr}.jpg`, expFramesRef.current, i);
     }
-    loadImageBatch(expUrls, expFramesRef.current, 0);
 
-    // 3. Preload Hero Video (counts as 1 asset)
+    // 3. Preload Hero Video
     const video = document.createElement('video');
     video.preload = 'auto';
     video.muted = true;
@@ -125,7 +105,9 @@ export default function Preloader({ onComplete }) {
     video.src = '/assets/Hero.mp4';
     video.load();
 
-    const videoSafetyTimeout = setTimeout(onVideoReady, 3000);
+    const videoSafetyTimeout = setTimeout(() => {
+      onVideoReady();
+    }, 2000);
 
     return () => {
       isMounted = false;
