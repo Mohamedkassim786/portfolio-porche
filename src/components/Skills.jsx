@@ -247,9 +247,7 @@ export default function Skills() {
           const el = elementsRef.current[i];
           const body = physicsBodies[i];
           if (el && body) {
-            el.style.left = `${body.position.x}px`;
-            el.style.top = `${body.position.y}px`;
-            el.style.transform = `translate(-50%, -50%) rotate(${body.angle}rad)`;
+            el.style.transform = `translate3d(${body.position.x}px, ${body.position.y}px, 0) translate(-50%, -50%) rotate(${body.angle}rad)`;
           }
         }
         physicsFrameId = requestAnimationFrame(step);
@@ -258,7 +256,7 @@ export default function Skills() {
 
       if (!mouseConstraint.body) {
         clearTimeout(settleTimeout);
-        settleTimeout = setTimeout(() => stopPhysics(), 4000);
+        settleTimeout = setTimeout(() => stopPhysics(), 3500);
       }
     };
 

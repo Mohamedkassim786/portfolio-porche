@@ -105,16 +105,25 @@ export default function About({ preloadedFrames = [] }) {
       }
     };
 
+    let rAFId = null;
+    const requestFrameDraw = (force = false) => {
+      if (rAFId) return;
+      rAFId = requestAnimationFrame(() => {
+        rAFId = null;
+        renderFrame(force);
+      });
+    };
+
     const resizeCanvas = () => {
       const dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
-      renderFrame(true);
+      requestFrameDraw(true);
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas, { passive: true });
-    renderFrame(true);
+    requestFrameDraw(true);
 
     const triggerCtx = gsap.context(() => {
       const aboutTl = gsap.timeline({
@@ -135,7 +144,7 @@ export default function About({ preloadedFrames = [] }) {
         frame: TOTAL_FRAMES - 1,
         ease: 'none',
         duration: 0.78,
-        onUpdate: () => renderFrame(false),
+        onUpdate: () => requestFrameDraw(false),
       }, 0);
 
       // 2. Contrast Overlay Deepening
